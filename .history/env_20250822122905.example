@@ -1,0 +1,72 @@
+# PBR Anywhere Environment Configuration
+
+# Application
+NODE_ENV=development
+PORT=8000
+FRONTEND_URL=http://localhost:3000
+BACKEND_URL=http://localhost:8000
+
+# Database
+DATABASE_URL=postgresql://username:password@localhost:5432/pbr_anywhere
+DATABASE_HOST=localhost
+DATABASE_PORT=5432
+DATABASE_NAME=pbr_anywhere
+DATABASE_USER=username
+DATABASE_PASSWORD=password
+
+# AWS Configuration
+AWS_REGION=us-east-1
+AWS_ACCESS_KEY_ID=your_access_key_id
+AWS_SECRET_ACCESS_KEY=your_secret_access_key
+AWS_S3_BUCKET=pbr-anywhere-videos
+AWS_CLOUDFRONT_DISTRIBUTION_ID=your_distribution_id
+
+# EC2 Configuration
+EC2_INSTANCE_TYPE=t3.medium
+EC2_KEY_PAIR_NAME=your_key_pair_name
+EC2_SECURITY_GROUP_ID=sg-your_security_group_id
+EC2_SUBNET_ID=subnet-your_subnet_id
+
+# PBR Scraping
+PBR_SCHEDULE_URL=https://pbr.com/watch/
+SCRAPING_INTERVAL=300000
+SCRAPING_USER_AGENT=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36
+
+# Video Recording
+RECORDING_QUALITY=1080p
+RECORDING_FORMAT=mp4
+RECORDING_BITRATE=5000k
+RECORDING_FPS=30
+
+# Authentication
+JWT_SECRET=your_jwt_secret_key_here
+JWT_EXPIRES_IN=24h
+SESSION_SECRET=your_session_secret_here
+
+# Streaming Platform Credentials (for testing)
+FOX_NATION_TEST_USERNAME=test_user
+FOX_NATION_TEST_PASSWORD=test_password
+CW_TEST_USERNAME=test_user
+CW_TEST_PASSWORD=test_password
+CBS_TEST_USERNAME=test_user
+CBS_TEST_PASSWORD=test_password
+
+# Redis (for session management)
+REDIS_URL=redis://localhost:6379
+REDIS_HOST=localhost
+REDIS_PORT=6379
+
+# Logging
+LOG_LEVEL=info
+LOG_FILE=logs/pbr-anywhere.log
+
+# Email (for notifications)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your_email@gmail.com
+SMTP_PASS=your_app_password
+
+# Security
+CORS_ORIGIN=http://localhost:3000
+RATE_LIMIT_WINDOW_MS=900000
+RATE_LIMIT_MAX_REQUESTS=100

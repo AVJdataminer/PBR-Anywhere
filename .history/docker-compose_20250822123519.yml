@@ -1,0 +1,184 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: pbr-postgres
+    environment:
+      POSTGRES_DB: pbr_anywhere
+      POSTGRES_USER: pbr_user
+      POSTGRES_PASSWORD: pbr_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/migrations:/docker-entrypoint-initdb.d
+    networks:
+      - pbr-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pbr_user -d pbr_anywhere"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for session management
+  redis:
+    image: redis:7-alpine
+    container_name: pbr-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - pbr-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: pbr-backend
+    environment:
+      NODE_ENV: development
+      PORT: 8000
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_NAME: pbr_anywhere
+      DATABASE_USER: pbr_user
+      DATABASE_PASSWORD: pbr_password
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      PBR_SCHEDULE_URL: https://pbr.com/watch/
+      SCRAPING_INTERVAL: 300000
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - pbr-network
+    restart: unless-stopped
+
+  # Frontend React App
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: pbr-frontend
+    environment:
+      REACT_APP_API_URL: http://localhost:8000
+      REACT_APP_ENVIRONMENT: development
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - pbr-network
+    restart: unless-stopped
+
+  # PBR Scraper Service
+  scraper:
+    build:
+      context: ./scraper
+      dockerfile: Dockerfile
+    container_name: pbr-scraper
+    environment:
+      NODE_ENV: development
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_NAME: pbr_anywhere
+      DATABASE_USER: pbr_user
+      DATABASE_PASSWORD: pbr_password
+      PBR_SCHEDULE_URL: https://pbr.com/watch/
+      SCRAPING_INTERVAL: 300000
+    volumes:
+      - ./scraper:/app
+      - /app/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - pbr-network
+    restart: unless-stopped
+
+  # Video Recording Service
+  recorder:
+    build:
+      context: ./recorder
+      dockerfile: Dockerfile
+    container_name: pbr-recorder
+    environment:
+      NODE_ENV: development
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_NAME: pbr_anywhere
+      DATABASE_USER: pbr_user
+      DATABASE_PASSWORD: pbr_password
+      AWS_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+    volumes:
+      - ./recorder:/app
+      - /app/node_modules
+      - /tmp/recordings:/tmp/recordings
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - pbr-network
+    restart: unless-stopped
+
+  # Nginx Reverse Proxy (Optional)
+  nginx:
+    image: nginx:alpine
+    container_name: pbr-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - pbr-network
+    restart: unless-stopped
+
+  # MailHog for email testing
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: pbr-mailhog
+    ports:
+      - "1025:1025"  # SMTP
+      - "8025:8025"  # Web UI
+    networks:
+      - pbr-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  pbr-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
